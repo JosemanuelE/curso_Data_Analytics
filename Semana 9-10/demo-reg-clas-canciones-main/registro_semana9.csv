@@ -1,0 +1,6 @@
+modelo,mae,rmse,r2,sesgo
+linea_base_genero,10.54,13.07,0.05,1.59
+lineal,5.98,7.38,0.697,-0.87
+ridge,5.99,7.39,0.697,-0.86
+random_forest,6.87,8.65,0.585,1.16
+gradient_boosting,6.33,7.91,0.652,0.96
