@@ -7,15 +7,17 @@ y el error esperado se leen de la ficha del modelo. Cambiar de modelo es cambiar
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse
 
 from src.app.esquemas import Cancion, Prediccion, Salud
 from src.artefacto import RUTA_MODELO, cargar
 
 MAXIMO_LOTE = 1000
+PAGINA = Path(__file__).with_name("pagina.html")
 
 
 @asynccontextmanager
@@ -85,8 +87,9 @@ def predecir_filas(modelo: dict, canciones: list[Cancion]) -> list[Prediccion]:
 
 
 @app.get("/", include_in_schema=False)
-def raiz() -> RedirectResponse:
-    return RedirectResponse("/docs")
+def raiz() -> HTMLResponse:
+    """Página para usar el servicio sin conocimientos técnicos; /docs sigue disponible."""
+    return HTMLResponse(PAGINA.read_text(encoding="utf-8"))
 
 
 @app.get("/salud", response_model=Salud)

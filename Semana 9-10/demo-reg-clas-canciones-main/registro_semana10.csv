@@ -1,0 +1,6 @@
+modelo,umbral,costo,precision,recall,auc
+linea_base_nunca_hit,,774,,0.0,
+logistica,0.27,320,0.496,0.888,0.909
+logistica_regularizada,0.26,308,0.516,0.876,0.908
+random_forest,0.24,390,0.514,0.725,0.867
+gradient_boosting,0.19,362,0.507,0.787,0.87

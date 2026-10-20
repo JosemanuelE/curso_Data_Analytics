@@ -34,6 +34,65 @@ Cada sprint cierra con un incremento en producción: su servicio publicado en Re
 
 El sprint 1 está disponible y el repositorio trae su modelo de referencia en `models/modelo.pkl`. El sprint 2 usa el mismo servicio con otro archivo de modelo. En ambos se entrena con las canciones de 1995 a 2019 y se evalúa con las de 2020 a 2025.
 
+## Trabajo del equipo
+
+- **Servicio en Render:** _(completar con la URL)_
+- **Integrantes:** _(completar)_
+
+El servicio publicado responde con el modelo del **sprint 2** (clasificación). La raíz `/` muestra una página para usarlo sin conocimientos técnicos, con controles deslizantes y la recomendación explicada; `/docs` sigue disponible.
+
+### Sprint 1: popularidad esperada (regresión)
+
+Se agregó la variable derivada `baile_energia = bailabilidad × energía` en `derivadas()` de `src/variables.py`, junto a `duracion_c2`. `src/entrenar_regresion.py` compara cuatro candidatos con una validación interna dentro del entrenamiento (ajuste 1995-2014, validación 2015-2019) y elige el de menor MAE. El registro queda en `registro_semana9.csv`.
+
+| Modelo | MAE en validación 2015-2019 |
+|---|---|
+| Media por género (línea base) | 10,54 |
+| **Lineal (elegido)** | **5,98** |
+| Ridge | 5,99 |
+| Gradient boosting | 6,33 |
+| Random forest | 6,87 |
+
+Resultado en la prueba 2020-2025, usada una sola vez: **MAE 5,77** frente a 10,44 de la línea base; RMSE 7,17; R² 0,717; sesgo 0,28. El modelo de referencia del taller obtiene MAE 5,75. Una copia de este modelo está en `models/modelo_sprint1_regresion.pkl`.
+
+### Sprint 2: ¿será un hit? (clasificación por costos)
+
+Objetivo `es_hit` (popularidad ≥ 70), con las mismas 10 variables de entrada y las mismas derivadas; se excluyen `reproducciones_sem1` y `popularidad`. Dejar pasar un hit cuesta 3 y promocionar una canción que no lo es cuesta 1.
+
+`src/entrenar_clasificacion.py` compara cuatro clasificadores. Para cada uno obtiene probabilidades fuera de muestra en 1995-2019 con 4 bloques temporales crecientes (`TimeSeriesSplit`), busca el umbral de menor costo y elige el candidato de menor costo. El registro queda en `registro_semana10.csv`.
+
+| Modelo | Umbral | Costo en validación | Precisión | Recall | AUC |
+|---|---|---|---|---|---|
+| Nunca promocionar (línea base) | | 774 | | 0,000 | |
+| Logística | 0,27 | 320 | 0,496 | 0,888 | 0,909 |
+| **Logística regularizada, C=0,1 (elegida)** | **0,26** | **308** | 0,516 | 0,876 | 0,908 |
+| Random forest | 0,24 | 390 | 0,514 | 0,725 | 0,867 |
+| Gradient boosting | 0,19 | 362 | 0,507 | 0,787 | 0,870 |
+
+Resultado en la prueba 2020-2025, usada una sola vez con el modelo y el umbral ya elegidos: **costo 100** frente a 318 de la línea base; precisión 0,657; recall 0,830; AUC 0,917. De los 106 hits del periodo detecta 88 y deja pasar 18; recomienda promocionar 134 canciones, de las cuales 46 no fueron hit (matriz de confusión: tn 263, fp 46, fn 18, tp 88). El modelo de referencia del taller obtiene costo 99.
+
+El umbral (0,26) es bajo porque perder un hit cuesta tres veces más que una promoción fallida: conviene promocionar aunque la probabilidad no sea alta.
+
+### Cómo reproducir
+
+```bash
+python -m src.entrenar_regresion       # sprint 1: escribe models/modelo.pkl con la regresión
+python -m src.entrenar_clasificacion   # sprint 2: escribe models/modelo.pkl con el clasificador (el publicado)
+pytest -q
+uvicorn src.app.main:app --reload      # página en http://127.0.0.1:8000, API en /docs
+python -m src.probar_servicio          # o con la URL de Render
+```
+
+Los dos scripts escriben el mismo `models/modelo.pkl`; el último que se ejecute es el que carga el servicio.
+
+### Cambios sobre el repositorio base
+
+- `src/variables.py`: variable derivada `baile_energia`.
+- `src/entrenar_regresion.py` y `src/entrenar_clasificacion.py`: comparación de candidatos con validación interna.
+- `src/app/main.py`: la raíz `/` muestra `src/app/pagina.html` en lugar de redirigir a `/docs`. Las predicciones, las rutas de la API y el contrato de entrada no cambian.
+- `src/app/pagina.html`: página para usuarios no técnicos. Se adapta sola a regresión o clasificación según la ficha.
+- `.gitignore`: evita subir `.venv` y `__pycache__`.
+
 ## Cómo trabajar cada sprint
 
 1. Clone el repositorio e instale las dependencias, como se explica en [Ejecución local](#ejecución-local).
@@ -100,6 +159,7 @@ El archivo debe pesar menos de 20 MB. Un Random Forest sin límite de profundida
 
 | Método | Ruta | Respuesta |
 |--------|------|-----------|
+| `GET` | `/` | Página para usar el servicio sin conocimientos técnicos |
 | `GET` | `/docs` | Documentación interactiva, donde se pueden probar todas las rutas |
 | `GET` | `/salud` | Estado del servicio y modelo cargado |
 | `GET` | `/modelo` | Ficha del modelo |
@@ -130,6 +190,9 @@ Con el modelo del sprint 2, la misma entrada trae valores en `probabilidad_hit` 
 demo-reg-clas-canciones/
 ├── data/canciones.csv              # 2.000 canciones sintéticas, 1995-2025
 ├── models/modelo.pkl               # El archivo que usted reemplaza en cada sprint
+├── models/modelo_sprint1_regresion.pkl  # Copia del modelo del sprint 1
+├── registro_semana9.csv            # Comparación de candidatos del sprint 1
+├── registro_semana10.csv           # Comparación de candidatos del sprint 2
 ├── src/
 │   ├── variables.py                # Columnas de entrada, variables derivadas y partición temporal
 │   ├── artefacto.py                # guardar() y cargar() del modelo
@@ -138,7 +201,8 @@ demo-reg-clas-canciones/
 │   ├── probar_servicio.py          # Prueba de humo contra el servicio publicado
 │   └── app/
 │       ├── esquemas.py             # Formato de entrada y salida
-│       └── main.py                 # Servicio FastAPI
+│       ├── main.py                 # Servicio FastAPI
+│       └── pagina.html             # Página de la raíz para usuarios no técnicos
 ├── tests/test_servicio.py          # Pruebas
 ├── requirements.txt                # Dependencias con versiones fijas
 └── render.yaml                     # Configuración para Render (Python 3.11)
