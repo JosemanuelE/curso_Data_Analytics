@@ -36,8 +36,8 @@ El sprint 1 está disponible y el repositorio trae su modelo de referencia en `m
 
 ## Trabajo del equipo
 
-- **Servicio en Render:** _(completar con la URL)_
-- **Integrantes:** _(completar)_
+- **Servicio en Render:** <https://curso-data-analytics-84q0.onrender.com> (API en [/docs](https://curso-data-analytics-84q0.onrender.com/docs))
+- **Integrantes:** Jose Manuel Espinosa Diaz, Yerick Stev Gonzales, Paula Daniela Montenegro
 
 El servicio publicado responde con el modelo del **sprint 2** (clasificación). La raíz `/` muestra una página para usarlo sin conocimientos técnicos, con controles deslizantes y la recomendación explicada; `/docs` sigue disponible.
 
